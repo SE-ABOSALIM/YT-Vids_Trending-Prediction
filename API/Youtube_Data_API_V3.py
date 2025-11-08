@@ -6,17 +6,13 @@ import os
 from tqdm import tqdm
 from datetime import datetime, timedelta
 
-# 🔹 API anahtarları
-API_KEYS = [
-    "AIzaSyAWACtqbUp7n6YDzQFxAdm8n2SCYJPdO-Q"
-]
+API_KEYS = []
 
 OUTPUT_FILE = "../Dataset/non_trending_videos.csv"
 MAX_RESULTS = 50
 TARGET_COUNT = 100000
 SAVE_INTERVAL = 1000
 
-# 🔹 Arama kelimeleri
 KEYWORDS = [
     "music", "movie", "vlog", "review", "funny", "gaming", "education", "sports",
     "tutorial", "travel", "science", "art", "food", "comedy", "documentary",
@@ -24,14 +20,13 @@ KEYWORDS = [
     "asmr", "interview", "test", "study", "ai", "robotics", "fashion", "nature"
 ]
 
-# 🔹 CSV kontrolü
 if os.path.exists(OUTPUT_FILE):
     df_existing = pd.read_csv(OUTPUT_FILE)
     existing_ids = set(df_existing["video_id"].astype(str))
-    print(f"📂 Mevcut kayıtlar yüklendi: {len(existing_ids)} adet\n")
+    print(f"Existing records loaded: {len(existing_ids)} entries\n")
 else:
     existing_ids = set()
-    print("🆕 Yeni CSV oluşturulacak\n")
+    print("New CSV will be created\n")
 
 all_videos = []
 total_count = 0
@@ -39,8 +34,6 @@ api_index = 0
 quota_exhausted = [False] * len(API_KEYS)
 page_token = None
 
-
-# 🔹 API key yönetimi
 def get_key():
     global api_index
     return API_KEYS[api_index % len(API_KEYS)]
@@ -52,29 +45,25 @@ def next_key():
     usable = [i for i, used in enumerate(quota_exhausted) if not used]
 
     if not usable:
-        print("🛑 Tüm API anahtarlarının kotası doldu. Veri çekimi durduruluyor...")
+        print("All API keys have reached their quota. Stopping data collection...")
         save_progress()
         exit(0)
 
     api_index = usable[0]
-    print(f"🔁 API anahtarı değiştirildi → {get_key()}")
+    print(f"Switched to next API key → {get_key()}")
 
-
-# 🔹 Kayıt işlemi
 def save_progress():
     global all_videos
     if not all_videos:
         return
-    print(f"💾 {len(all_videos)} video kaydediliyor...")
+    print(f"Saving {len(all_videos)} videos...")
     temp_df = pd.DataFrame(all_videos)
     mode = "a" if os.path.exists(OUTPUT_FILE) else "w"
     header = not os.path.exists(OUTPUT_FILE)
     temp_df.to_csv(OUTPUT_FILE, mode=mode, index=False, header=header)
     all_videos.clear()
-    print(f"✅ {OUTPUT_FILE} güncellendi.")
+    print(f"{OUTPUT_FILE} updated.")
 
-
-# 🔹 İstatistik çekme
 def fetch_video_stats(video_ids):
     stats = {}
     for i in range(0, len(video_ids), 50):
@@ -90,7 +79,7 @@ def fetch_video_stats(video_ids):
 
                 if "error" in data:
                     msg = data["error"]["message"]
-                    print(f"⚠️ {msg}")
+                    print(f"{msg}")
                     if "quota" in msg.lower():
                         next_key()
                         continue
@@ -113,14 +102,12 @@ def fetch_video_stats(video_ids):
 
                 break
             except Exception as e:
-                print("❌ İstatistik hatası:", e)
+                print("Error fetching video statistics:", e)
                 next_key()
                 time.sleep(1)
         time.sleep(0.15)
     return stats
 
-
-# 🔹 Rastgele 2022–2024 tarih aralığı
 def random_date_range_2022_2024():
     start = datetime(2022, 1, 1)
     end = datetime(2024, 12, 31)
@@ -133,10 +120,9 @@ def random_date_range_2022_2024():
     )
 
 
-print("📡 Video çekme işlemi başlatıldı (US bölgesi, 2022–2024 aralığı)...\n")
+print("Starting video collection (US region, 2022–2024 range)...\n")
 
-# 🔹 Ana toplama döngüsü
-for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API aramaları"):
+for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API requests"):
     query = random.choice(KEYWORDS)
     published_after, published_before = random_date_range_2022_2024()
 
@@ -155,13 +141,13 @@ for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API aramaları"):
         response = requests.get(search_url, timeout=10)
         data = response.json()
     except Exception as e:
-        print("❌ API isteği hatası:", e)
+        print("API request error:", e)
         next_key()
         continue
 
     if "error" in data:
         msg = data["error"]["message"]
-        print(f"⚠️ {msg}")
+        print(f"{msg}")
         if "quota" in msg.lower():
             next_key()
         continue
@@ -202,14 +188,14 @@ for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API aramaları"):
 
     if total_count % SAVE_INTERVAL == 0 and total_count > 0:
         save_progress()
-        print(f"📊 Toplam {total_count} video toplandı.\n")
+        print(f"Total videos collected: {total_count}\n")
 
     if total_count >= TARGET_COUNT:
-        print("🎯 Hedefe ulaşıldı!")
+        print("Target reached!")
         break
 
     time.sleep(0.25)
 
 save_progress()
-print(f"\n🎬 İşlem tamamlandı. Toplam {total_count} video eklendi.")
-print(f"📁 CSV dosyası: {os.path.abspath(OUTPUT_FILE)}")
+print(f"\nProcess completed. Total videos collected: {total_count}")
+print(f"CSV file: {os.path.abspath(OUTPUT_FILE)}")
