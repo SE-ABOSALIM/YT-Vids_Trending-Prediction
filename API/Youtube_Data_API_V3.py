@@ -4,14 +4,19 @@ import random
 import time
 import os
 from tqdm import tqdm
+from datetime import datetime, timedelta
 
-API_KEYS = []
+# 🔹 API anahtarları
+API_KEYS = [
+    "AIzaSyAWACtqbUp7n6YDzQFxAdm8n2SCYJPdO-Q"
+]
 
 OUTPUT_FILE = "../Dataset/non_trending_videos.csv"
 MAX_RESULTS = 50
 TARGET_COUNT = 100000
 SAVE_INTERVAL = 1000
 
+# 🔹 Arama kelimeleri
 KEYWORDS = [
     "music", "movie", "vlog", "review", "funny", "gaming", "education", "sports",
     "tutorial", "travel", "science", "art", "food", "comedy", "documentary",
@@ -19,6 +24,7 @@ KEYWORDS = [
     "asmr", "interview", "test", "study", "ai", "robotics", "fashion", "nature"
 ]
 
+# 🔹 CSV kontrolü
 if os.path.exists(OUTPUT_FILE):
     df_existing = pd.read_csv(OUTPUT_FILE)
     existing_ids = set(df_existing["video_id"].astype(str))
@@ -34,6 +40,7 @@ quota_exhausted = [False] * len(API_KEYS)
 page_token = None
 
 
+# 🔹 API key yönetimi
 def get_key():
     global api_index
     return API_KEYS[api_index % len(API_KEYS)]
@@ -41,7 +48,7 @@ def get_key():
 
 def next_key():
     global api_index
-    quota_exhausted[api_index] = True  # mevcut key tükendi
+    quota_exhausted[api_index] = True
     usable = [i for i, used in enumerate(quota_exhausted) if not used]
 
     if not usable:
@@ -53,6 +60,7 @@ def next_key():
     print(f"🔁 API anahtarı değiştirildi → {get_key()}")
 
 
+# 🔹 Kayıt işlemi
 def save_progress():
     global all_videos
     if not all_videos:
@@ -66,10 +74,11 @@ def save_progress():
     print(f"✅ {OUTPUT_FILE} güncellendi.")
 
 
+# 🔹 İstatistik çekme
 def fetch_video_stats(video_ids):
     stats = {}
     for i in range(0, len(video_ids), 50):
-        batch = video_ids[i:i+50]
+        batch = video_ids[i:i + 50]
         while True:
             url = (
                 f"https://www.googleapis.com/youtube/v3/videos"
@@ -111,15 +120,32 @@ def fetch_video_stats(video_ids):
     return stats
 
 
-print("📡 Video çekme işlemi başlatıldı (US bölgesi)...\n")
+# 🔹 Rastgele 2022–2024 tarih aralığı
+def random_date_range_2022_2024():
+    start = datetime(2022, 1, 1)
+    end = datetime(2024, 12, 31)
+    delta = end - start
+    random_start = start + timedelta(days=random.randint(0, delta.days - 30))
+    random_end = random_start + timedelta(days=30)
+    return (
+        random_start.strftime("%Y-%m-%dT00:00:00Z"),
+        random_end.strftime("%Y-%m-%dT23:59:59Z"),
+    )
+
+
+print("📡 Video çekme işlemi başlatıldı (US bölgesi, 2022–2024 aralığı)...\n")
 
 # 🔹 Ana toplama döngüsü
 for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API aramaları"):
     query = random.choice(KEYWORDS)
+    published_after, published_before = random_date_range_2022_2024()
+
     search_url = (
         f"https://www.googleapis.com/youtube/v3/search"
         f"?part=snippet&type=video&maxResults={MAX_RESULTS}"
-        f"&regionCode=US&q={query}&videoDuration=any&key={get_key()}"
+        f"&regionCode=US&q={query}&videoDuration=any"
+        f"&publishedAfter={published_after}&publishedBefore={published_before}"
+        f"&key={get_key()}"
     )
 
     if page_token:
