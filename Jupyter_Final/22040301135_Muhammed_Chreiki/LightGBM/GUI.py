@@ -40,7 +40,7 @@ def hour_label(hour):
         return f"{hour:02d}:00 – {hour+1:02d}:00 (Night)"
 
 
-model_pipeline = joblib.load("/Jupyter_Final/22040301135_Muhammed_Chreiki/model_pipeline.pkl")
+model_pipeline = joblib.load("model_pipeline.pkl")
 
 st.set_page_config(page_title="YouTube Trending Predictor", layout="centered")
 
