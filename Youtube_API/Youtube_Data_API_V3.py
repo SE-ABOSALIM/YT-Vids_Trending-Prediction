@@ -45,12 +45,12 @@ def next_key():
     usable = [i for i, used in enumerate(quota_exhausted) if not used]
 
     if not usable:
-        print("All API keys have reached their quota. Stopping data collection...")
+        print("All Youtube_API keys have reached their quota. Stopping data collection...")
         save_progress()
         exit(0)
 
     api_index = usable[0]
-    print(f"Switched to next API key → {get_key()}")
+    print(f"Switched to next Youtube_API key → {get_key()}")
 
 def save_progress():
     global all_videos
@@ -122,7 +122,7 @@ def random_date_range_2022_2024():
 
 print("Starting video collection (US region, 2022–2024 range)...\n")
 
-for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API requests"):
+for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="Youtube_API requests"):
     query = random.choice(KEYWORDS)
     published_after, published_before = random_date_range_2022_2024()
 
@@ -141,7 +141,7 @@ for _ in tqdm(range(TARGET_COUNT // MAX_RESULTS * 2), desc="API requests"):
         response = requests.get(search_url, timeout=10)
         data = response.json()
     except Exception as e:
-        print("API request error:", e)
+        print("Youtube_API request error:", e)
         next_key()
         continue
 
