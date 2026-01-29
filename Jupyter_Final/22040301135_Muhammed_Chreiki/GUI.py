@@ -2,17 +2,13 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# =====================
 # CONFIG
-# =====================
 st.set_page_config(
     page_title="YouTube Trend Potential Predictor",
     layout="centered"
 )
 
-# =====================
 # LOAD MODELS
-# =====================
 @st.cache_resource
 def load_models():
     return {
@@ -54,9 +50,7 @@ CATEGORY_MAP = {
     "Movies": 30
 }
 
-# =====================
 # FEATURE ENGINEERING
-# =====================
 def prepare_input(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
@@ -70,7 +64,6 @@ def prepare_input(df: pd.DataFrame) -> pd.DataFrame:
     df["comment_view_ratio"] = df["comment_count"] / (df["view_count"] + 1)
     df["engagement_score"] = (df["likes"] + df["comment_count"]) / (df["view_count"] + 1)
 
-    # Robust text handling (avoid None/NaN issues)
     df["title"] = df["title"].fillna("").astype(str)
     df["description"] = df["description"].fillna("").astype(str)
     df["tags"] = df["tags"].fillna("").astype(str)
@@ -79,12 +72,9 @@ def prepare_input(df: pd.DataFrame) -> pd.DataFrame:
     df["description_length"] = df["description"].str.len()
     df["tag_count"] = df["tags"].apply(lambda x: 0 if x.strip() == "" else len(x.split("|")))
 
-    # Ensure correct column order
     return df.reindex(columns=FEATURES)
 
-# =====================
 # UI
-# =====================
 st.title("🔥 YouTube Trend Potential Predictor")
 st.markdown(
     "This tool estimates **how similar your video is to known trending videos**, "
@@ -93,42 +83,57 @@ st.markdown(
 
 st.divider()
 
-# Model selection
+# Model selection (tek satır)
 st.subheader("🧠 Model Selection")
 model_name = st.selectbox("Select Model", ["XGBoost", "LightGBM"])
 model = models[model_name]
 
 st.divider()
 
-# Engagement
-view_count = st.number_input("View Count", min_value=0, step=100)
-likes = st.number_input("Likes", min_value=0, step=10)
-comment_count = st.number_input("Comment Count", min_value=0, step=5)
+# Engagement (YAN YANA)
+st.subheader("📊 Engagement")
+c1, c2, c3 = st.columns(3)
+with c1:
+    view_count = st.number_input("View Count", min_value=0, step=100)
+with c2:
+    likes = st.number_input("Likes", min_value=0, step=10)
+with c3:
+    comment_count = st.number_input("Comment Count", min_value=0, step=5)
 
-# Metadata
-title = st.text_input("Video Title")
-description = st.text_area("Video Description")
-tags = st.text_input("Tags (separated by |)", value="")
+st.divider()
 
-category_name = st.selectbox("Category", list(CATEGORY_MAP.keys()))
-category_id = CATEGORY_MAP[category_name]
+# Metadata (daha düzenli iki kolon)
+st.subheader("🧾 Metadata")
+m1, m2 = st.columns([2, 1])
+with m1:
+    title = st.text_input("Video Title")
+    description = st.text_area("Video Description")
+    tags = st.text_input("Tags (separated by |)", value="")
+with m2:
+    category_name = st.selectbox("Category", list(CATEGORY_MAP.keys()))
+    category_id = CATEGORY_MAP[category_name]
 
-comments_disabled = st.radio(
-    "Are comments disabled?",
-    options=[0, 1],
-    format_func=lambda x: "No" if x == 0 else "Yes"
-)
+    comments_disabled = st.radio(
+        "Are comments disabled?",
+        options=[0, 1],
+        format_func=lambda x: "No" if x == 0 else "Yes"
+    )
 
-publish_date = st.date_input("Publish Date")
-publish_time = st.time_input("Publish Time")
+st.divider()
+
+# Publish datetime (YAN YANA)
+st.subheader("🕒 Publish Time")
+d1, d2 = st.columns(2)
+with d1:
+    publish_date = st.date_input("Publish Date")
+with d2:
+    publish_time = st.time_input("Publish Time")
 
 publishedAt = pd.to_datetime(f"{publish_date} {publish_time}")
 
 st.divider()
 
-# =====================
 # PREDICTION
-# =====================
 if st.button("Predict Trend Potential"):
     if title.strip() == "":
         st.warning("Title cannot be empty.")
